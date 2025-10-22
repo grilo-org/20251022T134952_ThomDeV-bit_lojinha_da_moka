@@ -1,0 +1,74 @@
+version: '3.9'
+services:
+    mysqldb:
+        image: mysql:latest
+        container_name: loja-db
+        restart: unless-stopped
+        environment:
+            MYSQL_DATABASE: 'loja'
+            MYSQL_ROOT_PASSWORD: root123
+            MYSQL_TCP_PORT: 3306
+        ports:
+            - 3307:3306
+        expose:
+            - 3307
+        healthcheck:
+            test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+            timeout: 30s
+            retries: 10
+        networks:
+            - mynet
+    app:
+        depends_on:
+            - mysqldb
+            - redis
+
+        build:
+            dockerfile: Dockerfile
+            context: .
+        links:
+            - mysqldb:database
+            - redis
+        environment:
+            MYSQL_HOST: mysqldb
+            MYSQL_LOCAL_PORT: 3306
+            MYSQL_DATABASE: 'loja'
+            MYSQL_USERNAME: 'root'
+            MYSQL_PASSWORD: 'root123'
+            MYSQL_ROOT_PASSWORD: 'root123'
+            REDIS_HOST: redis
+            REDIS_PORT: 6379
+        networks:
+            - mynet
+        container_name: lojinha
+        restart: unless-stopped
+        ports:
+            - 3000:3000
+        expose:
+            - 3000
+        volumes:
+            - C:\Users\thomaz.josetti\Desktop\redis:/usr/local/etc/redis
+            - C:\Users\thomaz.josetti\Desktop\mysql:/var/lib/mysql
+
+    redis:
+        container_name: redis-cache
+        image: redis:7.0-alpine
+        environment:
+            REDIS_HOST: redis
+            REDIS_PORT: 6379
+        networks:
+            - mynet
+        ports:
+            - 6379:6379
+        expose:
+            - 6379
+        healthcheck:
+            test: [ "CMD", "redis-cli", "ping" ]
+            interval: 1s
+            timeout: 5s
+            retries: 10
+
+networks:
+    mynet:
+        name: mynet
+        driver: bridge
